@@ -31,14 +31,18 @@ const playMusic = async (connection, youtubeUrl, startFrom = 0, maxAttempts = 3)
     const attemptToPlayMusic = async () => {
         return new Promise((resolve, reject) => {
             try {
-                const stream = ytdl(youtubeUrl, { filter: 'audioonly' });
+                const urlWithTimestamp = `${youtubeUrl}&t=${startFrom}s`;
+                console.log(`Playing music from: ${urlWithTimestamp}`);
+
+                const stream = ytdl(urlWithTimestamp, { filter: 'audioonly' });
 
                 stream.on("error", error => {
                     console.error("Stream error:", error);
 
                     if (attempts < maxAttempts) {
                         attempts++;
-                        console.log(`Retrying... (${attempts}/${maxAttempts})`);
+                        startFrom += Math.floor((Date.now() - startTimeIrl) / 1000);
+                        console.log(`Retrying... (${attempts}/${maxAttempts}) at time: ${startFrom}s`);
                         resolve(attemptToPlayMusic());
                     } else {
                         reject(error);
@@ -58,12 +62,16 @@ const playMusic = async (connection, youtubeUrl, startFrom = 0, maxAttempts = 3)
 
                     if (attempts < maxAttempts) {
                         attempts++;
-                        console.log(`Retrying... (${attempts}/${maxAttempts})`);
+                        startFrom += Math.floor((Date.now() - startTimeIrl) / 1000);
+                        console.log(`Retrying... (${attempts}/${maxAttempts}) at time: ${startFrom}s`);
                         resolve(attemptToPlayMusic());
                     } else {
                         reject(error);
                     }
                 });
+
+                startTimeIrl = Date.now();
+
             } catch (error) {
                 console.error(`Failed to play music: ${error}`);
                 reject(error);
@@ -80,7 +88,7 @@ const playMusic = async (connection, youtubeUrl, startFrom = 0, maxAttempts = 3)
 
 client.on('voiceStateUpdate', async (oldState, newState) => {
     if (newState.member && newState.guild) {
-        const guild = client.guilds.cache.get(newState.guild.id);
+        const guild = client.guilds.cache.get(newState.guild.id)
 
         if (!oldState.channelId && newState.channelId && newState.member.id === guild.ownerId) {
             const connection = joinVoiceChannel({
